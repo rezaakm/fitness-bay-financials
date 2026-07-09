@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fitness Bay — Financials (Cloud)</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<style>
+:root{
+ --card:#15191b;--ink:#e9eeea;--muted:#8a948e;--line:#272d2f;
+ --brand:#00E400;--brandHover:#39ff39;
+ --green:#2bea5e;--green2:#00E400;--greenfaint:rgba(0,228,0,0.13);--navy:#0f1213;--amber:#e3b063;--red:#ff6f6f;--blue:#5b9bff;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);font-size:14px;line-height:1.45;background-color:#0b0d0e;background-image:radial-gradient(1100px 480px at 50% -8%, rgba(0,228,0,0.10), transparent 60%),repeating-linear-gradient(45deg, rgba(255,255,255,0.016) 0 1px, transparent 1px 9px),repeating-linear-gradient(-45deg, rgba(255,255,255,0.011) 0 1px, transparent 1px 9px);background-attachment:fixed}
+.app{max-width:1180px;margin:0 auto;padding:18px}
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.logo{width:42px;height:42px;border-radius:11px;background:#0a0c0d;display:flex;align-items:center;justify-content:center;color:var(--brand);font-weight:900;font-size:17px;letter-spacing:.5px;box-shadow:0 0 0 1px #00e4004d, inset 0 0 14px #00e4001a, 0 0 20px #00e4001f}
+h1{font-size:20px;margin:0;font-weight:750;color:#fff}
+.sub{color:var(--muted);font-size:12px;margin-top:2px}
+.spacer{flex:1}
+.asof{font-size:12px;color:var(--muted);text-align:right}
+.user-info{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted)}
+.btn-logout{background:#1b2123;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-weight:600;cursor:pointer;font-size:12px}
+.btn-logout:hover{background:#2c3335}
+nav{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 18px;border-bottom:1px solid var(--line);padding-bottom:0}
+nav button{border:none;background:none;padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2.5px solid transparent;border-radius:6px 6px 0 0}
+nav button:hover{color:var(--ink);background:#1b2123}
+nav button.on{color:#fff;border-bottom-color:var(--brand)}
+.tab{display:none}
+.tab.on{display:block;animation:f .25s ease}
+@keyframes f{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.kpi .l{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+.kpi .v{font-size:23px;font-weight:760;margin-top:5px;letter-spacing:-.3px;color:#fff}
+.kpi .s{font-size:11.5px;color:var(--muted);margin-top:3px}
+.kpi.good .v{color:var(--brand)}.kpi.warn .v{color:var(--amber)}.kpi.you{background:linear-gradient(135deg,rgba(0,228,0,0.13),var(--card));border-color:#1f4a2a}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:820px){.row{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.panel h3{margin:0 0 10px;font-size:14px;font-weight:700;color:#fff}
+.chartbox{position:relative;height:240px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px 9px;text-align:right;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+thead th{font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);font-weight:650}
+tbody tr:hover{background:#1b2123}
+tfoot td{font-weight:750;border-top:2px solid #313839;border-bottom:none}
+.pos{color:var(--brand)}.neg{color:var(--red)}
+input,select,textarea{font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#0e1213;color:var(--ink);width:100%}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--brand);border-color:var(--brand)}
+label{font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:3px}
+.btn{background:var(--brand);color:#08160d;border:none;padding:9px 16px;border-radius:9px;font-weight:750;cursor:pointer;font-size:13.5px}
+.btn:hover{background:var(--brandHover)}.btn.alt{background:#23292b;color:#fff;font-weight:650}.btn.alt:hover{background:#2f3638}
+.btn.sm{padding:5px 10px;font-size:12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:720px){.grid2{grid-template-columns:1fr}}
+.note{font-size:12px;color:#b7c0bb;background:rgba(0,228,0,0.055);border-left:3px solid var(--brand);padding:9px 12px;border-radius:0 8px 8px 0;margin:8px 0}
+.pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;background:var(--greenfaint);color:var(--brand)}
+.muted{color:var(--muted)}.small{font-size:12px}
+.login-box{max-width:400px;margin:80px auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:28px}
+.login-box h2{color:#fff;margin:0 0 20px;font-size:18px;text-align:center}
+.login-box .note{margin-bottom:16px}
+.login-box input{margin-bottom:12px}
+.login-box .btn{width:100%;margin-bottom:8px}
+.spinner{text-align:center;padding:20px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<div class="app">
+<div id="auth-view" style="display:none">
+ <div class="login-box">
+  <div class="logo" style="margin:0 auto 14px;width:60px;height:60px;font-size:24px">FB</div>
+  <h2>Fitness Bay Financials</h2>
+  <div class="note">Cloud-connected partner dashboard. Log in to access monthly close, revenue, and profit tracking.</div>
+  <input type="email" id="email" placeholder="Email" value="">
+  <input type="password" id="password" placeholder="Password" value="">
+  <button class="btn" onclick="handleLogin()" id="login-btn">Sign In</button>
+  <div id="auth-error" style="color:var(--red);font-size:12px;margin-top:12px;text-align:center"></div>
+ </div>
+</div>
+
+<div id="main-view" style="display:none">
+<header>
+ <div class="logo">FB</div>
+ <div>
+  <h1>Fitness Bay — Financials</h1>
+  <div class="sub">Cloud-connected · monthly close · billings basis · OMR</div>
+ </div>
+ <div class="spacer"></div>
+ <div class="user-info">
+  <span id="user-email"></span>
+  <button class="btn-logout" onclick="handleLogout()">Sign Out</button>
+ </div>
+</header>
+
+<nav id="nav">
+ <button data-t="overview" class="on">Overview</button>
+ <button data-t="entry">Monthly Entry</button>
+ <button data-t="bills">Bills</button>
+ <button data-t="tally">Tally</button>
+ <button data-t="partners">Partners</button>
+ <button data-t="reports">Reports</button>
+ <button data-t="grow">Grow Sales</button>
+ <button data-t="ask">Ask AI</button>
+</nav>
+
+<div class="tab on" data-tab="overview">
+ <div class="cards" id="overview-kpis"></div>
+ <div class="row">
+  <div class="panel"><div class="chartbox"><canvas id="trend"></canvas></div></div>
+  <div class="panel"><div class="chartbox"><canvas id="mix"></canvas></div></div>
+ </div>
+</div>
+
+<div class="tab" data-tab="entry">
+ <div class="panel">
+  <h3>Add/Update Monthly Data</h3>
+  <div class="grid2">
+   <div><label>Month (YYYY-MM)</label><input type="text" id="entry-month" placeholder="2026-06"></div>
+   <div><label>Memberships Revenue (OMR)</label><input type="number" id="entry-mem" step="0.01"></div>
+  </div>
+  <div class="grid2">
+   <div><label>PT Revenue</label><input type="number" id="entry-pt" step="0.01"></div>
+   <div><label>Day Pass Revenue</label><input type="number" id="entry-dp" step="0.01"></div>
+  </div>
+  <div class="grid2">
+   <div><label>Other Revenue</label><input type="number" id="entry-other" step="0.01"></div>
+   <div><label>Total Cost (OMR)</label><input type="number" id="entry-cost" step="0.01"></div>
+  </div>
+  <button class="btn" onclick="saveMonth()">Save Month</button>
+  <div id="entry-status" style="margin-top:10px;font-size:12px;color:var(--muted)"></div>
+ </div>
+</div>
+
+<div class="tab" data-tab="bills">
+ <div class="panel">
+  <h3>Import Bills for Cost Tracking</h3>
+  <label>Paste CSV (month,description,amount) or drag-drop a file:</label>
+  <textarea id="bills-csv" rows="6" placeholder="2026-06,Rent,1200&#10;2026-06,Salary,2000" style="margin:8px 0 12px"></textarea>
+  <button class="btn" onclick="importBills()">Import Bills</button>
+  <div id="bills-status" style="margin-top:10px;font-size:12px;color:var(--muted)"></div>
+ </div>
+</div>
+
+<div class="tab" data-tab="tally">
+ <div class="panel">
+  <h3>Reconcile Virtuagym vs Bank</h3>
+  <div class="grid2">
+   <div><label>Month</label><input type="text" id="tally-month" placeholder="2026-06"></div>
+   <div><label>Virtuagym Collected (OMR)</label><input type="number" id="tally-vg" step="0.01"></div>
+  </div>
+  <div class="grid2">
+   <div><label>Bank Deposits (OMR)</label><input type="number" id="tally-bank" step="0.01"></div>
+   <div><label>Difference Named (note)</label><input type="text" id="tally-diff" placeholder="Counter cash, refund, etc."></div>
+  </div>
+  <button class="btn" onclick="saveTally()">Save Reconciliation</button>
+  <div id="tally-gap" style="margin-top:10px;font-size:12px"></div>
+ </div>
+</div>
+
+<div class="tab" data-tab="partners">
+ <div class="panel">
+  <h3>Partner Profit Share (70/30)</h3>
+  <table>
+   <thead><tr><th>Month</th><th>Profit</th><th>Your 70%</th><th>Mahsa 30%</th><th>Status</th></tr></thead>
+   <tbody id="partners-table"></tbody>
+  </table>
+  <div class="note" style="margin-top:14px">Last draw settled to Mar 2026. Balances shown are billings basis.</div>
+ </div>
+</div>
+
+<div class="tab" data-tab="reports">
+ <div class="panel">
+  <h3>Basis & Open Items</h3>
+  <div class="note flag">⚠ Cost period discrepancy: Dinesh's 16,440.84 may exclude Nov-Dec 2024 opening (2,700.69). Confirm with Dinesh before final settlement.</div>
+  <div class="note">Revenue: billings basis (Virtuagym invoiced). Costs: Nov 2024 – May 2026. Profit share: 70% Agency, 30% Mahsa on billings profit.</div>
+ </div>
+</div>
+
+<div class="tab" data-tab="grow">
+ <div class="panel">
+  <h3>Sales Growth Plays</h3>
+  <div id="grow-status" style="font-size:12px;color:var(--muted);margin-bottom:14px"></div>
+  <button class="btn" onclick="generateGrowthPlan()">Generate AI Growth Plan</button>
+  <div id="grow-ideas" style="margin-top:14px"></div>
+ </div>
+</div>
+
+<div class="tab" data-tab="ask">
+ <div class="panel">
+  <h3>Ask AI About Your Business</h3>
+  <div class="note">Ask any question about revenue, costs, trends, or strategy. AI will analyze your dashboard data to answer.</div>
+  <input type="text" id="ai-question" placeholder="E.g., 'why is profit down in May?' or 'what's our average monthly cost?'" style="margin-bottom:12px">
+  <button class="btn" onclick="askAI()">Ask</button>
+  <div id="ai-out" style="white-space:pre-wrap;background:#0e1213;border:1px solid var(--line);border-radius:12px;padding:14px;min-height:60px;font-size:13.5px;margin-top:14px;display:none"></div>
+ </div>
+</div>
+
+</div>
+
+<script>
+const SUPABASE_URL = 'https://rmdztasccsnrqqgqvgyy.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJtZHp0YXNjY3NucnFxZ3F2Z3l5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1MzQ1MjAsImV4cCI6MjA4NTExMDUyMH0.U9w8xUdt8XK_EqQq2zjBKV4GfxODBX2hvae-nmKS7CI';
+const { createClient } = window.supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+let session = null;
+let ch = {};
+
+async function init() {
+ const { data: { session: s } } = await sb.auth.getSession();
+ session = s;
+ if (s) showMain();
+ else showAuth();
+}
+
+function showAuth() {
+ document.getElementById('auth-view').style.display = 'block';
+ document.getElementById('main-view').style.display = 'none';
+}
+
+function showMain() {
+ document.getElementById('auth-view').style.display = 'none';
+ document.getElementById('main-view').style.display = 'block';
+ document.getElementById('user-email').textContent = session.user.email;
+ loadData();
+ setupNav();
+}
+
+async function handleLogin() {
+ const email = document.getElementById('email').value;
+ const pwd = document.getElementById('password').value;
+ document.getElementById('login-btn').disabled = true;
+ document.getElementById('auth-error').textContent = 'Signing in...';
+ try {
+  const { error } = await sb.auth.signInWithPassword({ email, password: pwd });
+  if (error) throw error;
+  const { data: { session: s } } = await sb.auth.getSession();
+  session = s;
+  showMain();
+ } catch (e) {
+  document.getElementById('auth-error').textContent = e.message;
+  document.getElementById('login-btn').disabled = false;
+ }
+}
+
+async function handleLogout() {
+ await sb.auth.signOut();
+ session = null;
+ showAuth();
+}
+
+async function loadData() {
+ try {
+  const { data: months } = await sb.from('months').select('*').order('month_key', { ascending: false });
+  renderOverview(months || []);
+ } catch (e) { console.error(e); }
+}
+
+function renderOverview(months) {
+ if (!months.length) { document.getElementById('overview-kpis').innerHTML = '<p style="color:var(--muted)">No data yet. Add a month to get started.</p>'; return; }
+ const total_rev = months.reduce((a,m)=>a+(m.revenue_memberships||0)+(m.revenue_pt||0)+(m.revenue_daypass||0)+(m.revenue_other||0),0);
+ const total_cost = months.reduce((a,m)=>a+(m.cost_total||0),0);
+ const total_profit = total_rev - total_cost;
+ const your_70 = total_profit * 0.7;
+ const your_cashout = 6601.44; // From previous dashboard (settled to Mar 2026)
+ const retained = your_70 - your_cashout;
+ const avg_cost = total_cost / months.length;
+
+ document.getElementById('overview-kpis').innerHTML = `
+  <div class="kpi"><div class="l">Revenue (Billings)</div><div class="v">${total_rev.toFixed(2)}</div><div class="s">OMR, gross</div></div>
+  <div class="kpi"><div class="l">Total Cost</div><div class="v">${total_cost.toFixed(2)}</div><div class="s">all periods</div></div>
+  <div class="kpi ${total_profit > 0 ? 'good' : 'warn'}"><div class="l">Profit</div><div class="v">${total_profit.toFixed(2)}</div><div class="s">before share</div></div>
+  <div class="kpi you"><div class="l">Your 70%</div><div class="v">${your_70.toFixed(2)}</div><div class="s">undrawn from profit</div></div>
+  <div class="kpi"><div class="l">Break-even Target</div><div class="v">${avg_cost.toFixed(2)}</div><div class="s">monthly avg</div></div>
+ `;
+ makeCharts(months);
+}
+
+function makeCharts(months) {
+ if(window.Chart)Chart.defaults.color="#c0c9c3";
+ const labels = months.map(m=>m.month_key).reverse();
+ const revs = months.map(m=>(m.revenue_memberships||0)+(m.revenue_pt||0)+(m.revenue_daypass||0)+(m.revenue_other||0)).reverse();
+ const costs = months.map(m=>m.cost_total||0).reverse();
+ const profits = months.map(m=>(m.revenue_memberships||0)+(m.revenue_pt||0)+(m.revenue_daypass||0)+(m.revenue_other||0)-(m.cost_total||0)).reverse();
+
+ const copts = {responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11}}}}};
+ if(ch.trend)ch.trend.destroy();
+ ch.trend = new Chart($('trend'), {data:{labels,datasets:[
+  {type:'bar',label:'Revenue',data:revs,backgroundColor:'rgba(0,228,0,0.55)',borderColor:'#00c600',borderWidth:1,borderRadius:4},
+  {type:'line',label:'Cost',data:costs,borderColor:'#e0a96d',borderDash:[5,4],pointRadius:0,tension:.2}
+ ]}, options:{...copts, scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(255,255,255,0.06)'}}}}});
+}
+
+function setupNav() {
+ document.querySelectorAll('nav button').forEach(b => {
+  b.onclick = () => {
+   document.querySelectorAll('nav button').forEach(x => x.classList.remove('on'));
+   document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+   b.classList.add('on');
+   document.querySelector('[data-tab="'+b.dataset.t+'"]').classList.add('on');
+  };
+ });
+}
+
+async function saveMonth() {
+ const month = document.getElementById('entry-month').value;
+ const mem = parseFloat(document.getElementById('entry-mem').value) || 0;
+ const pt = parseFloat(document.getElementById('entry-pt').value) || 0;
+ const dp = parseFloat(document.getElementById('entry-dp').value) || 0;
+ const other = parseFloat(document.getElementById('entry-other').value) || 0;
+ const cost = parseFloat(document.getElementById('entry-cost').value) || 0;
+ try {
+  const [y, m] = month.split('-').map(Number);
+  const { error } = await sb.from('months').upsert({
+   month_key: month,
+   year: y,
+   month: m,
+   revenue_memberships: mem,
+   revenue_pt: pt,
+   revenue_daypass: dp,
+   revenue_other: other,
+   cost_total: cost,
+   earned_revenue: mem + pt + dp + other,
+   profit: (mem + pt + dp + other) - cost,
+   mahsa_30pct: ((mem + pt + dp + other) - cost) * 0.3,
+   agency_70pct: ((mem + pt + dp + other) - cost) * 0.7
+  });
+  if (error) throw error;
+  document.getElementById('entry-status').textContent = '✓ Saved';
+  loadData();
+ } catch (e) { document.getElementById('entry-status').textContent = '✗ ' + e.message; }
+}
+
+async function importBills() {
+ const csv = document.getElementById('bills-csv').value;
+ const lines = csv.trim().split('\\n').filter(l => l);
+ try {
+  for (const line of lines) {
+   const [month, desc, amt] = line.split(',');
+   const { data: [existing] } = await sb.from('months').select('*').eq('month_key', month.trim()).single();
+   const cost = (existing?.cost_total || 0) + parseFloat(amt);
+   const rev = (existing?.revenue_memberships || 0) + (existing?.revenue_pt || 0) + (existing?.revenue_daypass || 0) + (existing?.revenue_other || 0);
+   await sb.from('months').upsert({
+    month_key: month.trim(),
+    year: parseInt(month.split('-')[0]),
+    month: parseInt(month.split('-')[1]),
+    cost_total: cost,
+    earned_revenue: rev,
+    profit: rev - cost,
+    mahsa_30pct: (rev - cost) * 0.3,
+    agency_70pct: (rev - cost) * 0.7
+   });
+  }
+  document.getElementById('bills-status').textContent = '✓ ' + lines.length + ' bills imported';
+  loadData();
+ } catch (e) { document.getElementById('bills-status').textContent = '✗ ' + e.message; }
+}
+
+async function saveTally() {
+ const month = document.getElementById('tally-month').value;
+ const vg = parseFloat(document.getElementById('tally-vg').value) || 0;
+ const bank = parseFloat(document.getElementById('tally-bank').value) || 0;
+ const diff = bank - vg;
+ document.getElementById('tally-gap').innerHTML = `<span class="${Math.abs(diff) < 10 ? 'pos' : 'neg'}">Gap: ${diff.toFixed(2)} OMR (${diff < 0 ? 'under' : 'over'} collected)</span>`;
+}
+
+async function generateGrowthPlan() {
+ const el = document.getElementById('grow-ideas');
+ el.innerHTML = '<div class="spinner">Generating plan...</div>';
+ try {
+  const { data: months } = await sb.from('months').select('*');
+  const prompt = `Fitness Bay gym has tracked the following monthly revenue and costs: ${JSON.stringify(months)}. The break-even is ~620 OMR/month. Generate 5 specific, actionable plays to close the gap and grow sales. Be concrete (e.g., "launch 3+1 membership promo in June").`;
+  const { data, error } = await sb.functions.invoke('ai-proxy', { body: { prompt, context: 'You are a gym business growth advisor.' } });
+  el.innerHTML = '<div class="note">' + (data?.result || 'No response') + '</div>';
+ } catch (e) { el.innerHTML = '<div class="note flag">API not configured. Ask your admin to set ANTHROPIC_API_KEY in Supabase secrets.</div>'; }
+}
+
+async function askAI() {
+ const q = document.getElementById('ai-question').value;
+ const out = document.getElementById('ai-out');
+ out.style.display = 'block';
+ out.textContent = 'Thinking...';
+ try {
+  const { data: months } = await sb.from('months').select('*');
+  const { data, error } = await sb.functions.invoke('ai-proxy', { body: { prompt: q, context: 'Dashboard data: ' + JSON.stringify(months) } });
+  out.textContent = data?.result || 'No response';
+ } catch (e) { out.textContent = 'Error: ' + e.message; }
+}
+
+const $ = (id) => document.getElementById(id);
+init();
+</script>
+
+</body>
+</html>
