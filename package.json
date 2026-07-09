@@ -1,0 +1,16 @@
+{
+  "name": "fitness-bay-financials",
+  "version": "1.0.0",
+  "description": "Cloud-connected gym financials dashboard",
+  "main": "api/server.js",
+  "scripts": {
+    "dev": "node api/server.js",
+    "start": "node api/server.js"
+  },
+  "keywords": ["gym", "fitness", "financials"],
+  "author": "Fitness Bay",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
